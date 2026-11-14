@@ -1,0 +1,19 @@
+{
+  "name": "eurth-names",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "Names: one consistent naming language per nation, by Eurth. For now the engine only; the site follows once @eurth/style 1.0.0 is released.",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "check": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "fast-check": "^4.10.2",
+    "typescript": "^6.0.3",
+    "vitest": "^5.1.0"
+  }
+}
