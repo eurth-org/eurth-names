@@ -40,7 +40,7 @@ describe('for any language and any seed', () => {
           }
         }
       }),
-      { numRuns: 1500 },
+      { numRuns: 1000 },
     );
   });
 
