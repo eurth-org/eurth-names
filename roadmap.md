@@ -6,61 +6,26 @@ Three parts: what comes next, what each release added (newest first), and what's
 
 ## Where to pick up
 
-**14 November 2026.** The brief is saved, the repository exists, and this plan is written. Nothing is built. The plan is waiting for Stijn's go-ahead; the next step is Phase 1, step 1.
+**14 November 2026, late.** Phase 1 is finished: the engine, the presets, the guide's worked examples, the glossary and the sources are written and tested (174 tests, `npm test`). @eurth/style 1.0.1 and @eurth/profile 1.0.0 are released, so Phase 2 can start. The next step is Phase 2, step 14: copy the starter template from eurth-style and put the engine behind it.
 
-Waiting on others:
+What a new session needs to know:
 
-- **@eurth/style 1.0.0** is not released. On GitHub the repository holds only its brief: no HANDBOOK.md, starter template or tag. Phase 2 can't start until it is: check `gh release list -R eurth-org/eurth-style`. The handbook's rules are in that brief (eurth-style's CLAUDE.md), and this plan follows them.
-- **@eurth/profile 1.0.0** is not released. Its draft `names` section holds a link, a summary, the language's name and three lists of picked names (`places`, `people`, `surnames`, 200 each, 80 characters a name). It has no fields for the sound palette, word parts or seed. It allows extra keys, so Names will add `palette`, `parts` and `seed` there (see Phase 1, step 8). Ask Foundations to document those keys.
+- **The engine is in `src/names/`** and has no dependencies. Start at `model.ts` (what a language is) and `generate.ts` (the promise about banned clusters). `src/content/` holds the guide's worked examples, the glossary and the sources as data; the guide's prose is still to be written, straight into the guide page.
+- **The profile section follows the handbook, not the brief.** The brief asked for the sound palette, word parts and seed in the `names` section; the handbook says a section is small and its `link` brings the whole design back. So the link carries the palette, the word parts and the seed, and the section holds `link`, `summary`, `language` and, if the person asks, the picked names. Every language fits in a link of under 3,900 characters; a test holds it to that.
+- **The link** is `?p=1.coastal.4471` for an untouched preset and `?d=1.…` for anything else. The `d` form is the same as `encodeState()` of @eurth/style writes; in Phase 2, use theirs instead of the copy in `link.ts`.
+- **Never update the snapshot in `tests/__snapshots__/`** once the site is live: it pins the first batch of every preset, and a change there changes every shared link. Until launch it may still be regenerated if a preset is retuned.
 
-Assumptions to confirm (none of them blocks step 1):
+Still to confirm with Stijn (none of it blocks the site):
 
-- **24 at a time** means 8 places, 8 people and 8 surnames, in the mock-up's three columns.
+- **24 at a time** is 8 places, 8 people and 8 surnames.
 - **The first page is called "Generator"**, as the brief says; the mock-up's header says "Maker" and has no Presets link.
-- **"Lock seed"**, not the mock-up's "Lock sounds": with the seed locked, changing a sound redraws the same 24 draws, so you can hear what the change did.
-- **Sounds are typed as you'd spell them** ("ae", "th", "sh" count as one sound each). No phonetic alphabet is needed to use the tool; the guide explains the link between the two.
-- **The eight presets** (see step 10).
+- **"Lock seed"**, not the mock-up's "Lock sounds".
+- **"Latinate imperial"** is the brief's own name for a preset, and the one place a preset's name leans on a real language. Say if it should be "Stately imperial".
+- **A short built-in list of rude words** is filtered from every batch (`unwanted.ts`, kept in ROT13). The brief didn't ask for it.
 
 ## Next
 
-### Phase 1: the engine and the words (needs nothing from @eurth/style)
-
-Plain TypeScript in `src/names/`, tests in `tests/`, as Flagwright keeps its engine in `src/flag/`. Only TypeScript, Vitest and fast-check (for the property tests) are installed. Commit and push after each step.
-
-1. **Model** (`model.ts`): a language is a name, a sound palette, word parts and a seed.
-   - Sound: its spelling (one to four letters), a weight, and how it leans at the start and at the end of a word (never, seldom, as usual, often).
-   - Palette: consonants, vowels, syllable shapes (a pattern of C and V such as CV, CVC, VC, CCV, each with a weight), banned clusters, and how many syllables a place, a given name and a surname may have.
-   - Word parts: place endings; given-name endings in three lists (feminine, masculine, either), or gender switched off; surname patterns, each on or off with its own affixes: patronymic (a given name plus an affix, before or after), place-based (a place name plus an affix or a particle), trade-based (a trade word plus an ending).
-   - Everything that arrives from a link or a file is checked and clamped: 40 consonants, 20 vowels, 12 shapes, 60 banned clusters and 24 endings a list at most; letters, apostrophes and hyphens only; text lengths capped; unknown keys dropped.
-2. **Randomness** (`random.ts`): a small seeded generator of our own, so a link gives the same names in every browser and `Math.random` is never used. Weighted picks. Separate streams for each column, derived from the seed, the column and how often it has been re-rolled, so re-rolling one column leaves the other two alone.
-3. **Words** (`word.ts`): a word is built syllable by syllable from the shapes and weights, with the start and end leanings applied to the first and last sound.
-   - Banned clusters are matched on the spelled word, ignoring case, across syllable breaks and across the join between a stem and an ending.
-   - They are avoided as the word is built (a sound that would complete a banned cluster is never offered), and every finished name is checked once more before it is returned.
-   - The work is bounded: a language too tight to fill a column returns fewer names and says why. It never loops.
-4. **Names** (`generate.ts`): one function from a language to a batch of 24.
-   - Places: a stem plus a place ending, or a stem alone for a set share of them.
-   - People: a stem plus a given-name ending; with gender on, each name says which list it came from, in a word.
-   - Surnames: by the patterns that are on. Patronymics build on a given name from the same language; place-based ones on a place name; trade-based ones on a small set of trades (smith, miller, fisher, weaver and so on) whose words are made once from the language's own sounds, so the same trade always gives the same root. Each surname says how it was made ("child of Teomir", "from Selunna", "weaver").
-   - No name twice in a batch. First letter capitalised.
-   - Re-roll one column; a new seed for all three unless the seed is locked.
-   - A short built-in list of words nobody wants in a list of names is filtered the same way as banned clusters.
-5. **Checking a language** (`review.ts`): gentle notes while you edit: no vowels, a shape nothing can fill, a banned cluster that rules out a whole sound, an ending that contains a banned cluster (it is skipped, and the note says so), too few possible names to fill a column.
-6. **Description** (`describe.ts`): the language in plain words ("Coastal: ten consonants and six vowels, mostly open syllables, never 'kt' or 'sr'; places end in -vin, -holm or -ara"), with a few names, for Copy description and screen readers.
-7. **The link** (`link.ts`): the whole language, the seed and the re-roll counts, compact and versioned, in the query string. An untouched preset is a few characters (`?p=coastal&s=4471`); anything else is compact JSON in base64url. The version also names the generator: if the way names are built ever changes, old links keep the old way.
-8. **The profile** (`profile.ts`): the `names` section: the link, a summary, the language's name, `palette`, `parts` and `seed`, and the picked names in `places`, `people` and `surnames` only if the person ticks "Add my picked names". Every other section and every unknown key is left alone.
-9. **Exports** (`export.ts`): the list as text and as CSV (kind, name, gender, how it was made, picked), and the language as JSON that loads back in.
-10. **Presets** (`presets.ts`): eight palettes named by feel, never after a real language or people: Soft and coastal, Hard highland, Long-vowelled steppe, Latinate imperial, Hushed forest, Dry desert, Open island, Clustered north. Each with a line on what makes it sound that way.
-11. **The planet** (`fun.ts`): spot a name that spells "Eurth" or "wurld", for the gold star and the toast.
-12. **Guide and glossary** (`src/content/`):
-    - The guide: how naming languages work. Phonology basics, syllable structure, phonotactics, why consistency sells a world, word parts (how real place names and surnames are built), and adapting real-world patterns respectfully. Each idea with a worked example in the tool's own terms, sources, and a last-updated date.
-    - Where Names stands: a warm word for Fantasy Name Generators, with a link, for anyone who wants lists by theme. Names does the other job: one sound system for everything a nation needs.
-    - A glossary of about 40 terms (phoneme, onset, coda, cluster, digraph, toponym, patronymic, exonym and so on).
-13. **Tests throughout**, and these in particular:
-    - Property tests (fast-check): for any language and any seed, no name contains a banned cluster; every name is built only from the palette and the word parts; the same link gives the same names; generating always finishes; whatever a link or file holds, the sanitiser returns a usable language.
-    - Snapshots: the first batch of every preset at a fixed seed, kept in the repository, so a change that would alter shared links fails a test.
-    - The guide's worked examples run as tests.
-
-### Phase 2: the site (only once @eurth/style 1.0.0 is released)
+### Phase 2: the site
 
 14. Start from the starter template in eurth-style; read HANDBOOK.md first, and where it differs from this plan, the handbook wins.
 15. Pages: Generator, Guide, Glossary, Presets, with titles, descriptions, canonical links, JSON-LD, sitemap.xml, robots.txt, llms.txt and Open Graph images.
@@ -72,6 +37,22 @@ Plain TypeScript in `src/names/`, tests in `tests/`, as Flagwright keeps its eng
 21. Offline, install, security headers, axe and Lighthouse checks, as the handbook asks.
 22. CI, and the launch workflow: `LAUNCH_AT` is `2026-12-12T00:00:00+01:00`, the scheduled run starts at 22:30 UTC on 11 December, and it also runs by hand. No custom domain and no workers.dev deploy before then.
 23. README (use, development, deployment), docs/feedback-log.md, and the handbook's checklist.
+
+## Built, not yet released
+
+Phase 1, 14 November 2026. This becomes the first release's section when the site launches.
+
+- **The language model:** consonants and vowels with weights and leanings (never, seldom, as usual, often at the start and end of a word), syllable shapes with weights, banned clusters, stem lengths, place endings, given-name endings by gender or none, and three surname patterns. Every list has a short written form ("p t*14 ng^0", "CV*60 CVC", "-sen mac- van_") that the text boxes, the link and the exported file share.
+- **Names from a seed:** 8 places, 8 people and 8 surnames from a generator of our own, the same in every browser. Each column has its own stream, so re-rolling one leaves the other two alone.
+- **Banned clusters never appear:** kept out while a word is built and checked again on every finished name, endings and affixes included. Property-tested on thousands of made-up languages.
+- **Two rules beyond the brief, to keep ban lists short:** vowels only meet between syllables when the language says so; and a sound that never starts a word always follows a vowel, while one that never ends a word is always followed by one. Clusters such as "br" and "rd" are typed as sounds and stay where they belong.
+- **Joins that read naturally:** where an ending that starts with a vowel meets a stem that ends in one, the stem gives way (Kitu and -ia make Kitia).
+- **Surnames three ways:** from a parent's name, from a place, or from a trade, where each language has its own word for each of 18 trades.
+- **Eight presets by feel:** Soft and coastal, Hard highland, Long-vowelled steppe, Latinate imperial, Hushed forest, Dry desert, Open island, Clustered north.
+- **Checks while you edit:** what stops a language making names, and what is quietly left out.
+- **Saving and sharing:** the link, the profile's `names` section, the language as a JSON file that loads back in, the list as text and CSV, and a written description.
+- **The planet:** a name that spells "Eurth" or "wurld" is spotted, for the gold star.
+- **For the guide:** ten worked examples that the tests run, a glossary of 49 terms, and eleven sources.
 
 ## Releases
 
