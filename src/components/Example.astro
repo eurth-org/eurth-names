@@ -1,0 +1,82 @@
+---
+// One of the guide's worked examples: the language in its short written form, the names it
+// gives, and a link that opens it in the generator. The names are the ones in
+// src/content/examples.ts, which the tests hold the generator to.
+import { exampleById } from '../content/examples';
+import { newDraw } from '../names/generate';
+import { writeLink } from '../names/link';
+import { formatAffixes, formatBanned, formatEndings, formatShapes, formatSounds, sanitise } from '../names/model';
+
+interface Props {
+  id: string;
+}
+
+const example = exampleById(Astro.props.id);
+if (!example) throw new Error(`No worked example called "${Astro.props.id}"`);
+const l = sanitise(example.language);
+const rows: [string, string][] = [
+  ['Consonants', formatSounds(l.consonants)],
+  ['Vowels', formatSounds(l.vowels)],
+  ['Shapes', formatShapes(l.shapes)],
+];
+if (l.banned.length > 0) rows.push(['Banned', formatBanned(l.banned)]);
+if (example.kind === 'place' && l.places.endings.length > 0) rows.push(['Place endings', formatEndings(l.places.endings)]);
+if (example.kind === 'given') {
+  if (l.given.feminine.length > 0) rows.push(['Feminine', formatEndings(l.given.feminine)]);
+  if (l.given.masculine.length > 0) rows.push(['Masculine', formatEndings(l.given.masculine)]);
+  if (l.given.either.length > 0) rows.push(['Either', formatEndings(l.given.either)]);
+}
+if (example.kind === 'surname') {
+  if (l.surnames.patronymic.on) rows.push(["From a parent's name", formatAffixes(l.surnames.patronymic.affixes)]);
+  if (l.surnames.place.on) rows.push(['From a place', formatAffixes(l.surnames.place.affixes)]);
+  if (l.surnames.trade.on) rows.push(['From a trade', formatAffixes(l.surnames.trade.affixes)]);
+}
+const link = `/?${writeLink({ language: l, draw: newDraw(example.seed) })}`;
+---
+
+<figure class="eu-card example" id={`example-${example.id}`}>
+  <figcaption class="eu-label">{example.title}</figcaption>
+  <dl>
+    {
+      rows.map(([label, value]) => (
+        <div>
+          <dt class="eu-help">{label}</dt>
+          <dd class="eu-data">{value}</dd>
+        </div>
+      ))
+    }
+  </dl>
+  <p class="made">{example.names.join(' · ')}</p>
+  <p class="eu-help">{example.note}</p>
+  <p><a href={link} data-same-tab>Open this language in the generator</a></p>
+</figure>
+
+<style>
+  .example {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    margin: var(--space-6) 0;
+  }
+
+  dl,
+  dd,
+  p {
+    margin: 0;
+  }
+
+  dl {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
+  dd {
+    overflow-wrap: anywhere;
+  }
+
+  .made {
+    font: var(--type-lead);
+    overflow-wrap: anywhere;
+  }
+</style>

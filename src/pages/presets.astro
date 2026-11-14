@@ -1,0 +1,108 @@
+---
+// The presets: eight palettes described by feel, each with a few of its names and a link into
+// the generator. The names and links are made at build time by the generator's own code, so
+// they can never drift apart.
+import Page from '@eurth/style/components/Page.astro';
+import { site } from '../../eurth.config.mjs';
+import { describeLanguage } from '../names/describe';
+import { generate, newDraw } from '../names/generate';
+import { writeLink } from '../names/link';
+import { PRESETS } from '../names/presets';
+
+const cards = PRESETS.map((preset) => {
+  const draw = newDraw(preset.seed);
+  const batch = generate(preset.language, draw);
+  const some = (kind: 'place' | 'given' | 'surname') => batch[kind].names.slice(0, 4).map((n) => n.text);
+  return { preset, link: `/?${writeLink({ language: preset.language, draw })}`, places: some('place'), people: some('given'), surnames: some('surname'), description: describeLanguage(preset.language).split('. ').slice(0, 2).join('. ') + '.' };
+});
+---
+
+<Page
+  site={site}
+  title="Naming language presets"
+  description="Eight naming languages to start from, each described by how it feels: soft and coastal, hard highland, long-vowelled steppe and more. Open one and make it yours."
+  crumbs={[{ name: 'Presets', path: '/presets/' }]}
+>
+  <div class="eu-stack">
+    <header class="eu-prose">
+      <p class="eu-kicker">Presets</p>
+      <h1>Eight ways a language can feel</h1>
+      <p class="eu-lead">
+        Somewhere to start. Each preset is a handful of choices about sounds, syllables and endings, and the line under its name says which. Open one in the <a href="/">generator</a> and change what you
+        like; the <a href="/guide/">guide</a> explains why each choice does what it does.
+      </p>
+      <p>The presets are named for how they feel in the mouth, never for a real language or people. None is a copy of one.</p>
+    </header>
+    <ul class="gallery">
+      {
+        cards.map((card) => (
+          <li class="eu-card">
+            <h2>{card.preset.title}</h2>
+            <p class="eu-kicker">{card.preset.feel}</p>
+            <p>{card.preset.about}</p>
+            <dl>
+              <div>
+                <dt class="eu-help">Places</dt>
+                <dd>{card.places.join(' · ')}</dd>
+              </div>
+              <div>
+                <dt class="eu-help">People</dt>
+                <dd>{card.people.join(' · ')}</dd>
+              </div>
+              <div>
+                <dt class="eu-help">Surnames</dt>
+                <dd>{card.surnames.join(' · ')}</dd>
+              </div>
+            </dl>
+            <p class="eu-help">{card.description}</p>
+            <p>
+              <a class="eu-btn" href={card.link} data-same-tab>
+                Start from {card.preset.language.name}
+              </a>
+            </p>
+          </li>
+        ))
+      }
+    </ul>
+  </div>
+</Page>
+
+<style>
+  .gallery {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: var(--space-4);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .gallery li {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+
+  .gallery h2 {
+    font: var(--type-subtitle);
+  }
+
+  .gallery :is(h2, p, dl, dd) {
+    margin: 0;
+  }
+
+  .gallery dl {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
+  .gallery dd {
+    font: var(--type-lead);
+    overflow-wrap: anywhere;
+  }
+
+  .gallery li > p:last-child {
+    margin-top: auto;
+  }
+</style>

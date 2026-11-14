@@ -1,0 +1,50 @@
+---
+// The glossary: each term has an id to link to, and the whole set is given to search engines
+// as a DefinedTermSet.
+import { definedTermSet } from '@eurth/style/build';
+import Page from '@eurth/style/components/Page.astro';
+import { site } from '../../eurth.config.mjs';
+import { GLOSSARY, termById } from '../content/glossary';
+
+const terms = GLOSSARY.map((t) => ({ id: t.id, term: t.term, definition: t.definition }));
+---
+
+<Page
+  site={site}
+  title="Glossary of naming language terms"
+  description={`${GLOSSARY.length} words about names and the sounds they are made of, in a sentence or two each: phonotactics, onset, coda, patronymic, toponym and the rest.`}
+  crumbs={[{ name: 'Glossary', path: '/glossary/' }]}
+  jsonld={[definedTermSet(site, { name: 'Glossary of naming language terms', path: '/glossary/', terms })]}
+>
+  <article class="eu-prose">
+    <p class="eu-kicker">Glossary</p>
+    <h1>Glossary of naming language terms</h1>
+    <p class="eu-lead">
+      The words this tool and its guide use, in a sentence or two each. See the <a href="/guide/">guide</a> for how they fit together, or go straight to the <a href="/">generator</a>.
+    </p>
+    <dl>
+      {
+        GLOSSARY.map((t) => (
+          <>
+            <dt id={t.id}>{t.term}</dt>
+            <dd>
+              {t.definition}
+              {t.see && t.see.length > 0 && (
+                <span class="see">
+                  {' See also '}
+                  {t.see.map((id, i) => (
+                    <>
+                      {i > 0 && (i === t.see!.length - 1 ? ' and ' : ', ')}
+                      <a href={`#${id}`}>{termById(id)!.term.toLowerCase()}</a>
+                    </>
+                  ))}
+                  .
+                </span>
+              )}
+            </dd>
+          </>
+        ))
+      }
+    </dl>
+  </article>
+</Page>

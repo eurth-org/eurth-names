@@ -1,0 +1,183 @@
+---
+// The guide: how naming languages work, with worked examples the tests run, sources and the
+// day it was last brought up to date. Search engines get the breadcrumb and the article's date.
+import { article, ref } from '@eurth/style/build';
+import Page from '@eurth/style/components/Page.astro';
+import { site } from '../../eurth.config.mjs';
+import Example from '../components/Example.astro';
+import { FANTASY_NAME_GENERATORS, GUIDE_UPDATED, SOURCES } from '../content/sources';
+
+const headline = 'How to make a naming language';
+const description = 'How naming languages work, for worldbuilders: choosing sounds, syllable shapes and the rules between them, building place names and surnames, and borrowing from real languages with respect.';
+const updatedText = new Date(`${GUIDE_UPDATED}T12:00:00Z`).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
+---
+
+<Page site={site} title={headline} description={description} crumbs={[{ name: 'Guide', path: '/guide/' }]} jsonld={[article(site, { headline, path: '/guide/', description, updated: GUIDE_UPDATED })]}>
+  <article class="eu-prose">
+    <p class="eu-kicker">Guide</p>
+    <h1>{headline}</h1>
+    <p class="eu-lead">
+      A name is the first thing anyone learns about your nation, and usually the second and third as well: its capital, its ruler, the river on its border. If those names sound as though they come from
+      the same mouths, readers believe in the place before you have explained anything.
+    </p>
+
+    <p>
+      You don't need to invent a whole language for that. You need a <a href="/glossary/#naming-language">naming language</a>: the sounds, the way they fit together, and a few word parts. That is an
+      afternoon's work, and this guide walks through it. Every example below is a real language you can open in the <a href="/">generator</a>.
+    </p>
+
+    <h2>Start with the sounds</h2>
+    <p>
+      Every language uses a small set of sounds, its <a href="/glossary/#phoneme">phonemes</a>, and ignores the rest. The size of that set varies more than you might think. In a survey of 562 languages,
+      the smallest inventory of consonants is 6 (Rotokas, in Papua New Guinea) and the largest 122 (!Xóõ, in Botswana), with most languages in the low twenties. Vowels run from 2 qualities to 14, and
+      the most common number by far is 5.
+    </p>
+    <p>
+      For a naming language, fewer is better. Ten or twelve consonants and five vowels are plenty, and what you leave out matters as much as what you keep. A language without p, b or g sounds different
+      from the first name on.
+    </p>
+    <p>
+      In Names you type sounds the way you want them spelled, with spaces between. A sound can take more than one letter: <code>th</code>, <code>sh</code> and <code>ae</code> are one sound each (a <a
+        href="/glossary/#digraph">digraph</a
+      >), and are never split. Here are two palettes with the same syllable shapes and the same seed.
+    </p>
+    <Example id="palette-soft" />
+    <Example id="palette-hard" />
+    <p>
+      Nothing but the consonants changed. <a href="/glossary/#liquid">Liquids</a> and <a href="/glossary/#nasal">nasals</a> (l, r, m, n) make a language flow; <a href="/glossary/#stop">stops</a> (k, g,
+      t, d) make it strike. Most of a language's character is decided here.
+    </p>
+
+    <h3>Not every sound is equally common</h3>
+    <p>
+      In English, t and n turn up constantly and z hardly at all. A language where every sound is equally likely sounds like a code. So give each sound a <a href="/glossary/#weight">weight</a>: write
+      <code>l*80</code> to make l eight times as common as a sound left at the usual 10.
+    </p>
+    <Example id="weights" />
+
+    <h2>Then the syllables</h2>
+    <p>
+      Sounds are grouped into <a href="/glossary/#syllable">syllables</a>, and languages differ in how much a syllable may hold. The shorthand is C for a consonant and V for a vowel. The one syllable
+      every language seems to have is CV. Some allow nothing more: of 486 languages surveyed, 61 allow only a vowel with at most one consonant before it. Most (274) are a little freer, and the rest
+      (151) allow real pile-ups, like the CCCVCC of English "strength".
+    </p>
+    <p>The shapes you allow set the rhythm of your names. The same sounds, with open syllables only and then with closed ones:</p>
+    <Example id="shapes-open" />
+    <Example id="shapes-closed" />
+    <p>
+      Mix shapes and weight them, as with sounds: <code>CV*60 CVC*30 V*10</code> gives mostly open syllables with the occasional closed one, which is roughly where a great many real languages sit.
+    </p>
+
+    <h2>Then the rules between sounds</h2>
+    <p>
+      This is <a href="/glossary/#phonotactics">phonotactics</a>: which sounds may sit where, and next to what. It is the part most invented names get wrong, and the part that does most to make a
+      language feel real. English has the sounds of "ng" and "h", but no English word starts with the first or ends with the second. No native word starts with "tl" either, though "atlas" and "bottle" show the language is happy with both sounds.
+    </p>
+    <h3>Banned clusters</h3>
+    <p>
+      The simplest rule is a list of things that never happen. In Names a <a href="/glossary/#banned-cluster">banned cluster</a> never appears in any name: not inside a word, not where two syllables
+      meet, and not where an ending joins on.
+    </p>
+    <Example id="banned" />
+    <h3>Sounds with a place of their own</h3>
+    <p>
+      Each sound can lean towards the start or the end of a word, or away from it: <code>ng^0</code> never starts a word, <code>h$0</code> never ends one, and 3 in place of 0 makes it happen often. "Never"
+      reaches inside the word too. A sound that never starts a word always follows a vowel, and one that never ends a word is always followed by one.
+    </p>
+    <Example id="edges" />
+    <p>
+      That rule is also how you get <a href="/glossary/#cluster">clusters</a> that behave. Type <code>br$0</code> and <code>st$0</code> as sounds of their own and they open syllables but never close
+      them; type <code>rd^0</code> and <code>lm^0</code> and they only close them. You get "Brand" and "Storm", never "Rdabr".
+    </p>
+    <h3>When vowels meet</h3>
+    <p>
+      Two vowels side by side in different syllables are a <a href="/glossary/#hiatus">hiatus</a>, as in "Leah". Many languages avoid it, so Names keeps vowels apart between syllables unless you let
+      them meet. If you want a pair to run together, type it as one vowel: <code>ai</code> is then a single sound, a <a href="/glossary/#diphthong">diphthong</a>.
+    </p>
+
+    <h2>Word parts: what makes a name a place, a person or a family</h2>
+    <p>
+      So far every name is a bare word. Real names are built from parts, and the parts tell you what kind of thing is being named. That is why you can tell a town from a person in a language you
+      don't speak.
+    </p>
+    <h3>Places</h3>
+    <p>
+      English place names are mostly an old word and an ending that once meant something plain: -ton was a farm, -ham a homestead, -by a village in the speech of the Norse settlers. Nobody hears
+      "farm" in Brighton any more, but everybody hears "town". Give your language three or four <a href="/glossary/#ending">endings</a> and its map starts to look like a map.
+    </p>
+    <Example id="endings" />
+    <p>
+      Where an ending that starts with a vowel meets a stem that ends in one, the stem gives way, as spoken languages tend to: Kitu and -ia make Kitia. That is <a href="/glossary/#elision">elision</a>,
+      and Names does it for you.
+    </p>
+    <h3>People</h3>
+    <p>
+      Given names often carry a marker too. If your culture marks gender in names, a pair of endings does it; if it doesn't, one set serves everyone. Either choice says something about the people.
+    </p>
+    <Example id="given" />
+    <h3>Families</h3>
+    <p>
+      Surnames in Britain and Ireland, and across much of Europe, come from four sources: a relative's name, a place, an occupation or a nickname. Names builds the first three from your own language: a <a
+        href="/glossary/#patronymic">patronymic</a
+      > from a given name, a <a href="/glossary/#place-surname">place-based surname</a> from a place name, and a <a href="/glossary/#trade-surname">trade-based surname</a> from the language's own word for
+      a trade.
+    </p>
+    <Example id="surnames" />
+    <p>Which of the three is common tells a story: a nation of patronymics remembers its parents, and a nation of place surnames remembers where it came from.</p>
+
+    <h2>Why consistency sells a world</h2>
+    <p>
+      Tolkien said his stories grew out of his languages, not the other way round, and it shows: a reader can sort his names into peoples without a glossary. That is the test. Put three of your names
+      beside three from a neighbouring nation. If a stranger can tell which are which, both languages are working.
+    </p>
+    <p>
+      It works because readers are good at this already. Everyone can tell an Italian menu from a Finnish one without speaking either. Give them the same cues in your world (the sounds, the rhythm, the
+      endings) and they will draw the borders themselves.
+    </p>
+    <p>
+      The opposite is the patchwork map, where the capital came from one list, the king from another and the river from a third. Each name may be fine. Together they say that nobody lives here.
+    </p>
+
+    <h2>Borrowing from real languages, with respect</h2>
+    <p>Every invented language borrows from real ones. There is no other source. How you borrow is what matters.</p>
+    <ul>
+      <li><strong>Borrow patterns, not names.</strong> "Mostly open syllables and long vowels" is a pattern anyone may use. Real people's names, and the names of real sacred places, are not set dressing.</li>
+      <li><strong>Mix your sources.</strong> Take the rhythm of one language, the consonants of another and endings of your own. The result belongs to your world and stands in for nobody's.</li>
+      <li>
+        <strong>Don't let the sounds do the judging.</strong> Harsh consonants and apostrophes for the villains and soft vowels for the heroes is an old habit, and it maps onto real prejudice about real
+        languages. Give your enemies a beautiful language.
+      </li>
+      <li><strong>Check what you made.</strong> A generated name can turn out to be a real word, sometimes a rude one, in a language you don't speak. Search for the important ones before they go on the map.</li>
+      <li><strong>Say where it came from.</strong> If a real language inspired yours, say so in your notes. It is honest, and it helps the next person who works on your world.</li>
+    </ul>
+    <p>This is why the <a href="/presets/">presets</a> are described by feel (soft and coastal, hard highland) and never named after a language or a people. They are starting points for something of your own.</p>
+
+    <h2>Where Names stands</h2>
+    <p>
+      We love <a href={ref(FANTASY_NAME_GENERATORS.url, site.host)}>{FANTASY_NAME_GENERATORS.name}</a>. It has a list for nearly everything, it is generous and well made, and if you need twenty names
+      for a kind of thing by this evening, go there with our blessing.
+    </p>
+    <p>
+      Names doesn't try to compete with that, and couldn't. It does the one job a list can't do: every name one nation needs, from one sound system, so that they all sound like the same place. Use
+      both.
+    </p>
+
+    <h2>Try it</h2>
+    <p>
+      Open the <a href="/">generator</a> and change one thing at a time: drop a consonant, add a shape, ban a cluster. Or start from one of the <a href="/presets/">presets</a>. When the names sound
+      like somewhere, give that somewhere a home: <a href="https://eurth.org" data-same-tab>Eurth</a> has a world for it to live in.
+    </p>
+
+    <h2>Sources</h2>
+    <ul>
+      {
+        SOURCES.map((s) => (
+          <li>
+            {s.by}, {s.url ? <a href={ref(s.url, site.host)}>{s.title}</a> : <cite>{s.title}</cite>} ({s.where}). {s.note}
+          </li>
+        ))
+      }
+    </ul>
+    <p class="eu-muted">Last updated <time datetime={GUIDE_UPDATED}>{updatedText}</time>.</p>
+  </article>
+</Page>

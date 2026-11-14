@@ -1,0 +1,84 @@
+---
+// The generator, and under it what search engines and newcomers both want: what it is, how to
+// use it, and answers to the usual questions (also given to search engines as structured data).
+import { faqPage, ref, webApplication } from '@eurth/style/build';
+import Page from '@eurth/style/components/Page.astro';
+import { site } from '../../eurth.config.mjs';
+import { FANTASY_NAME_GENERATORS } from '../content/sources';
+import Generator from '../tool/Generator.svelte';
+
+const faq = [
+  { q: 'Is Names free?', a: 'Yes. There is no account, no limit and no paid tier. It is made by the Eurth worldbuilding community for anyone who needs it.' },
+  {
+    q: 'How is this different from other name generators?',
+    a: 'Most generators hand you a list by theme. Names works the other way round: you set the sounds of one language, and every place, person and family is made from it. So the capital, the queen and the fishing village all sound like the same nation.',
+  },
+  { q: 'Can I use the names in my book, game or campaign?', a: 'Yes. The names are yours, for anything, with no credit needed. They are made from sounds you chose.' },
+  {
+    q: 'Where is my language saved?',
+    a: 'In its link. The link holds the whole language and the seed, so copying the link is saving it, and anyone who opens it sees the same 24 names. You can also save the language as a file, or inside your nation’s profile file for the other Eurth tools. Nothing is kept in your browser or on a server.',
+  },
+  { q: 'What happens to the names I pick?', a: 'They stay in the picked list for this visit, so you can copy them. Close the page and they are gone, unless you saved them to your nation’s profile.' },
+  { q: 'Why did I get fewer than 24 names?', a: 'The language is too tight to make more: too few sounds or shapes, or too many banned clusters. The notes under the controls say what to loosen.' },
+  { q: 'Does it work offline, and on a phone?', a: 'Yes to both. After the first visit the site keeps a copy of itself on your device and opens without a connection.' },
+];
+---
+
+<Page
+  site={site}
+  jsonld={[
+    webApplication(site, { featureList: ['Sound palette with weights', 'Syllable shapes and banned clusters', 'Place names, given names and surnames', 'Eight presets by feel', 'Link that holds the whole language', 'Text, CSV and JSON exports', 'Nation profile file'] }),
+    faqPage(faq),
+  ]}
+>
+  <div class="eu-stack">
+    <header class="eu-stack intro">
+      <p class="eu-kicker">Name and language generator</p>
+      <h1>Names that sound like one place</h1>
+      <p class="eu-lead">Set the sounds of your nation's language once. Every town, every person and every family is then made from them, 24 names at a time. Free, in your browser, no account needed.</p>
+    </header>
+
+    <!-- client:load draws the generator as real HTML first, then wakes it up. -->
+    <Generator client:load siteName={site.name} siteUrl={site.url} />
+
+    <section class="eu-prose">
+      <h2>How it works</h2>
+      <ol>
+        <li>Start from a <a href="/presets/">preset</a> that feels right, or type your own consonants and vowels.</li>
+        <li>Choose the syllable shapes and a few place endings. The names change as you do.</li>
+        <li>Press Generate for another 24, or re-roll one column. Star the names you like.</li>
+        <li>Copy the link to keep the language: it gives the same names to anyone who opens it.</li>
+      </ol>
+      <p>
+        New to this? The <a href="/guide/">guide</a> explains how naming languages work, the <a href="/glossary/">glossary</a> has the words, and the <a href="/presets/">presets</a> show eight
+        ways a language can feel.
+      </p>
+
+      <h2>One language, not one list</h2>
+      <p>
+        We love <a href={ref(FANTASY_NAME_GENERATORS.url, site.host)}>{FANTASY_NAME_GENERATORS.name}</a>, and if you want a thousand tavern names or a list for every kind of dragon, that is where to go.
+        Names does the job a list can't: everything one nation needs, from one sound system, so that a reader who meets Selunna, Teomir and Varenko knows they belong together.
+      </p>
+
+      <h2>Questions</h2>
+      <dl>
+        {
+          faq.map((item) => (
+            <>
+              <dt>{item.q}</dt>
+              <dd>{item.a}</dd>
+            </>
+          ))
+        }
+      </dl>
+    </section>
+  </div>
+
+  <Fragment slot="inspirations">Names owes its method to Mark Rosenfelder's Language Construction Kit, and tips its hat to Fantasy Name Generators.</Fragment>
+</Page>
+
+<style>
+  .intro {
+    gap: var(--space-2);
+  }
+</style>

@@ -8,8 +8,8 @@
  *
  * Both start with a version, 1. It names the way names are built as well as the shape of the
  * link: if the generator ever changes, version 1 links keep being read the old way, so a link
- * made today opens the same names next year. The `d` form is the same as `encodeState()` of
- * @eurth/style writes.
+ * made today opens the same names next year. The `d` form is written and read by
+ * `encodeState()` and `decodeState()` of @eurth/style, like every Eurth tool's.
  *
  * A link is someone else's input. readLink() never throws; everything it reads goes through
  * sanitise(), and anything it can't read gives the first preset.
@@ -29,6 +29,7 @@ import {
 } from './model';
 import { DEFAULT_PRESET, presetById, PRESETS, type Preset } from './presets';
 import { cleanSeed } from './random';
+import { decodeState, encodeState } from '@eurth/style';
 
 export const LINK_VERSION = 1;
 export const SITE = 'https://names.eurth.org/';
@@ -45,17 +46,6 @@ export const defaultState = (): State => ({ language: DEFAULT_PRESET.language, d
 
 /** The preset a language is still identical to, if any. */
 export const presetOf = (language: Language): Preset | undefined => PRESETS.find((p) => sameLanguage(p.language, language));
-
-const toBase64Url = (bytes: Uint8Array): string => {
-  let binary = '';
-  for (const byte of bytes) binary += String.fromCharCode(byte);
-  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-};
-
-const fromBase64Url = (text: string): Uint8Array => {
-  const binary = atob(text.replace(/-/g, '+').replace(/_/g, '/'));
-  return Uint8Array.from(binary, (c) => c.charCodeAt(0));
-};
 
 const rolls = (draw: Draw): number[] => [draw.rolls.place, draw.rolls.given, draw.rolls.surname];
 
@@ -123,7 +113,7 @@ export function writeLink(state: State): string {
     const r = rolls(state.draw);
     return `p=${LINK_VERSION}.${preset.id}.${state.draw.seed}${r.some((n) => n > 0) ? `.${r.join('-')}` : ''}`;
   }
-  return `d=${LINK_VERSION}.${toBase64Url(new TextEncoder().encode(JSON.stringify(compact(state))))}`;
+  return `d=${encodeState(compact(state), LINK_VERSION)}`;
 }
 
 /** The full address for a state. */
@@ -149,17 +139,10 @@ function readPreset(text: string): ReadLink['found'] | State {
 }
 
 function readState(text: string): ReadLink['found'] | State {
-  if (text.length > MAX_STATE_LENGTH) return 'broken';
-  const found = /^(\d{1,4})\.([A-Za-z0-9_-]*)$/.exec(text);
-  if (!found) return 'broken';
-  if (Number(found[1]) > LINK_VERSION) return 'newer';
-  if (Number(found[1]) < 1) return 'broken';
-  try {
-    const value: unknown = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(fromBase64Url(found[2] ?? '')));
-    return expand(value) ?? 'broken';
-  } catch {
-    return 'broken';
-  }
+  const read = decodeState(text, { maxLength: MAX_STATE_LENGTH });
+  if (!read || read.version < 1) return 'broken';
+  if (read.version > LINK_VERSION) return 'newer';
+  return expand(read.value) ?? 'broken';
 }
 
 /**
