@@ -12,7 +12,7 @@
 import { capitalise, fold, type Affix, type Ending, type Gender, type Language } from './model';
 import { chance, cleanSeed, pickWeighted, stream, type Rng } from './random';
 import { unwanted } from './unwanted';
-import { buildStem, holdsBan, prepare, type Prepared } from './word';
+import { buildStem, holdsBan, prepare, type Prepared, type Stem } from './word';
 
 export type Kind = 'place' | 'given' | 'surname';
 export const KINDS: readonly Kind[] = ['place', 'given', 'surname'];
@@ -86,6 +86,8 @@ interface Made {
   lower: string;
   /** Whether an ending was added to the stem. */
   ended: boolean;
+  /** The vowels it ends in, in order: the ones that give way when a vowel is joined on. */
+  tail: string[];
   gender?: Gender;
 }
 
@@ -105,28 +107,53 @@ function vowelAt(p: Prepared, text: string, end: boolean): string {
   return found;
 }
 
+/** The vowels a stem ends in, read from its sounds (so the u of "qu" is never taken for one). */
+function stemTail(stem: Stem): string[] {
+  let from = stem.slots.length;
+  while (from > 0 && stem.slots[from - 1] === 'V') from--;
+  return stem.sounds.slice(from);
+}
+
+/** The vowels an ending or an affix ends in, read from its letters. */
+export function textTail(p: Prepared, text: string): string[] {
+  const tail: string[] = [];
+  let rest = text;
+  for (let v = vowelAt(p, rest, true); v !== '' && tail.length < 4; v = vowelAt(p, rest, true)) {
+    tail.unshift(v);
+    rest = rest.slice(0, -v.length);
+  }
+  return tail;
+}
+
 /**
- * Joins an ending onto a name. Where a vowel would meet a vowel, the name gives up its last
- * one, as spoken languages tend to: Kitu and -ia make Kitia, not Kituia.
+ * Joins an ending onto a name. Where a vowel would meet a vowel, the name gives way, as spoken
+ * languages tend to: Kitu and -ia make Kitia, not Kituia, and Atia and -ius make Atius. The
+ * last vowel always goes if a letter is left; earlier ones only while two letters are.
  */
-export function join(p: Prepared, base: string, ending: string): string {
+export function join(p: Prepared, base: string, tail: readonly string[], ending: string): string {
   if (vowelAt(p, ending, false) === '') return base + ending;
-  const tail = vowelAt(p, base, true);
-  return (tail !== '' && base.length > tail.length ? base.slice(0, -tail.length) : base) + ending;
+  let keep = base.length;
+  for (let i = tail.length - 1; i >= 0; i--) {
+    const left = keep - tail[i]!.length;
+    if (left < (i === tail.length - 1 ? 1 : 2)) break;
+    keep = left;
+  }
+  return base.slice(0, keep) + ending;
 }
 
 /** A stem, with an ending from the list for all but `bare` in a hundred of them. */
 function stemWithEnding(p: Prepared, rng: Rng, span: { min: number; max: number }, endings: readonly Ending[], bare: number): Made | null {
   const plain = chance(rng, bare) || endings.length === 0;
   if (plain) {
-    const stem = buildStem(p, rng, span.min, span.max, true);
-    return stem && { lower: stem.text, ended: false };
+    const stem = buildStem(p, rng, span.min, span.max, 'end');
+    return stem && { lower: stem.text, ended: false, tail: stemTail(stem) };
   }
   const ending = pickEnding(rng, endings);
+  if (!ending) return null;
   // The ending counts as a syllable, so the stem is one shorter where it can be.
-  const stem = buildStem(p, rng, span.min, Math.max(span.min, span.max - 1), false);
-  if (!stem || !ending) return null;
-  return { lower: join(p, stem.text, ending.text), ended: true };
+  const stem = buildStem(p, rng, span.min, Math.max(span.min, span.max - 1), vowelAt(p, ending.text, false) === '' ? 'consonant' : 'vowel');
+  if (!stem) return null;
+  return { lower: join(p, stem.text, stemTail(stem), ending.text), ended: true, tail: textTail(p, ending.text) };
 }
 
 function makePlace(p: Prepared, rng: Rng): Made | null {
@@ -145,59 +172,63 @@ function makeGiven(p: Prepared, rng: Rng): Made | null {
   return made && { ...made, gender };
 }
 
-const tradeWords = new WeakMap<Prepared, Map<Trade, string | null>>();
+const tradeWords = new WeakMap<Prepared, Map<Trade, Made | null>>();
+
+function tradeStem(p: Prepared, trade: Trade): Made | null {
+  let words = tradeWords.get(p);
+  if (!words) tradeWords.set(p, (words = new Map()));
+  const known = words.get(trade);
+  if (known !== undefined) return known;
+  const rng = stream('trade', trade);
+  let word: Made | null = null;
+  for (let i = 0; i < TRIES && word === null; i++) {
+    const stem = buildStem(p, rng, 1, 2, 'consonant');
+    // A word of three letters or more if the language has one to give; anything after that.
+    if (stem && allowed(p, stem.text) && (stem.text.length >= 3 || i >= TRIES / 2)) word = { lower: stem.text, ended: false, tail: stemTail(stem) };
+  }
+  words.set(trade, word);
+  return word;
+}
 
 /**
  * The language's word for a trade. It depends on the language alone, not on the seed, so the
  * weavers of one nation share a name whatever batch they turn up in.
  */
 export function tradeWord(language: Language, trade: Trade): string | null {
-  const p = prepare(language);
-  let words = tradeWords.get(p);
-  if (!words) tradeWords.set(p, (words = new Map()));
-  if (words.has(trade)) return words.get(trade) ?? null;
-  const rng = stream('trade', trade);
-  let word: string | null = null;
-  for (let i = 0; i < TRIES && word === null; i++) {
-    const stem = buildStem(p, rng, 1, 2, false);
-    // A word of three letters or more if the language has one to give; anything after that.
-    if (stem && allowed(p, stem.text) && (stem.text.length >= 3 || i >= TRIES / 2)) word = stem.text;
-  }
-  words.set(trade, word);
-  return word;
+  return tradeStem(prepare(language), trade)?.lower ?? null;
 }
 
-/** A base name with an affix: "Teomirsen", "Macteomir", "O'Teomir", "van Selunna". */
-function attach(p: Prepared, base: string, affix: Affix | undefined): string {
-  if (!affix) return capitalise(base);
-  if (affix.apart) return affix.before ? `${affix.text} ${capitalise(base)}` : `${capitalise(base)} ${affix.text}`;
-  if (!affix.before) return capitalise(join(p, base, affix.text));
+/**
+ * A base name with an affix: "Teomirsen", "Macteomir", "O'Teomir", "van Selunna". Null when the
+ * name already ends in the affix: nobody is called Thiwionion.
+ */
+function attach(p: Prepared, base: Made, affix: Affix | undefined): string | null {
+  if (!affix) return capitalise(base.lower);
+  if (affix.apart) return affix.before ? `${affix.text} ${capitalise(base.lower)}` : `${capitalise(base.lower)} ${affix.text}`;
+  if (!affix.before) return base.lower.endsWith(affix.text) ? null : capitalise(join(p, base.lower, base.tail, affix.text));
   // After an apostrophe the name keeps its own capital, as in O'Brien.
-  return affix.text.endsWith("'") ? capitalise(affix.text) + capitalise(base) : capitalise(affix.text + base);
+  return affix.text.endsWith("'") ? capitalise(affix.text) + capitalise(base.lower) : capitalise(affix.text + base.lower);
 }
 
 const pickAffix = (rng: Rng, affixes: readonly Affix[]): Affix | undefined => affixes[pickWeighted(rng, affixes.map((a) => a.weight))];
 
 function makeSurname(p: Prepared, rng: Rng): Name | null {
-  const { surnames, length } = p.language;
-  const patterns = [surnames.patronymic, surnames.place, surnames.trade];
-  const which = pickWeighted(rng, patterns.map((s) => (s.on ? s.weight : 0)));
+  const { length } = p.language;
+  const which = pickWeighted(rng, p.surnames.map((s) => s.weight));
   if (which < 0) {
-    const stem = buildStem(p, rng, length.surname.min, length.surname.max, true);
+    const stem = buildStem(p, rng, length.surname.min, length.surname.max, 'end');
     return stem && { text: capitalise(stem.text), kind: 'surname', how: 'stem' };
   }
-  const affix = pickAffix(rng, patterns[which]!.affixes);
-  if (which === 0) {
-    const parent = makeGiven(p, rng);
-    return parent && { text: attach(p, parent.lower, affix), kind: 'surname', how: 'patronymic', from: capitalise(parent.lower) };
+  const affix = pickAffix(rng, p.surnames[which]!.affixes);
+  if (which === 2) {
+    const trade = TRADES[Math.floor(rng() * TRADES.length)] ?? 'smith';
+    const word = tradeStem(p, trade);
+    const text = word && attach(p, word, affix);
+    return text ? { text, kind: 'surname', how: 'trade', meaning: trade } : null;
   }
-  if (which === 1) {
-    const place = makePlace(p, rng);
-    return place && { text: attach(p, place.lower, affix), kind: 'surname', how: 'place', from: capitalise(place.lower) };
-  }
-  const trade = TRADES[Math.floor(rng() * TRADES.length)] ?? 'smith';
-  const word = tradeWord(p.language, trade);
-  return word === null ? null : { text: attach(p, word, affix), kind: 'surname', how: 'trade', meaning: trade };
+  const base = which === 0 ? makeGiven(p, rng) : makePlace(p, rng);
+  const text = base && attach(p, base, affix);
+  return base && text ? { text, kind: 'surname', how: which === 0 ? 'patronymic' : 'place', from: capitalise(base.lower) } : null;
 }
 
 function makeName(p: Prepared, kind: Kind, rng: Rng): Name | null {
@@ -223,7 +254,8 @@ export function generateColumn(language: Language, kind: Kind, seed: number, rol
     if (!name) continue;
     name.text = name.text.normalize('NFC');
     const key = fold(name.text);
-    if (seen.has(key) || !allowed(p, name.text)) continue;
+    // One letter is not a name.
+    if (seen.has(key) || key.length < 2 || !allowed(p, name.text)) continue;
     seen.add(key);
     names.push(name);
   }

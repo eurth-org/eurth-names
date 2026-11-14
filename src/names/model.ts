@@ -17,7 +17,14 @@
  * input. sanitise() never throws and always gives back a well-formed language.
  */
 
-/** How a sound leans at the start or the end of a word: never, seldom, as usual, often. */
+/**
+ * How a sound leans at the start or the end of a word: never, seldom, as usual, often.
+ *
+ * "Never" reaches inside the word too. A sound that never starts a word never follows a sound
+ * of its own kind either: "ng" and "rd" always come after a vowel. One that never ends a word
+ * is never followed by its own kind: "h" and "br" always have a vowel after them. That is how
+ * a language keeps its clusters where they belong.
+ */
 export type Leaning = 0 | 1 | 2 | 3;
 export const LEANINGS = ['never', 'seldom', 'as usual', 'often'] as const;
 
@@ -70,6 +77,12 @@ export interface Language {
   consonants: Sound[];
   vowels: Sound[];
   shapes: Shape[];
+  /**
+   * Whether a syllable that starts with a vowel may follow one that ends in a vowel ("ka-i-a").
+   * Off, vowels only sit side by side where a shape or a spelling says so ("CVV", or "ai" as
+   * one sound).
+   */
+  vowelsMeet: boolean;
   banned: string[];
   length: { place: Span; given: Span; surname: Span };
   places: {
@@ -101,6 +114,7 @@ export interface Draft {
   consonants?: unknown;
   vowels?: unknown;
   shapes?: unknown;
+  vowelsMeet?: unknown;
   banned?: unknown;
   length?: unknown;
   places?: unknown;
@@ -114,7 +128,7 @@ export const LIMITS = {
   soundLetters: 4,
   shapes: 12,
   shapeLetters: 6,
-  banned: 60,
+  banned: 120,
   bannedLetters: 8,
   endings: 16,
   endingLetters: 10,
@@ -337,6 +351,7 @@ export function sanitise(value: unknown): Language {
     consonants: parseSounds(d.consonants, LIMITS.consonants),
     vowels: parseSounds(d.vowels, LIMITS.vowels),
     shapes: parseShapes(d.shapes),
+    vowelsMeet: d.vowelsMeet === true || d.vowelsMeet === 1,
     banned: parseBanned(d.banned),
     length: {
       place: cleanSpan(length.place, { min: 2, max: 3 }),
@@ -417,6 +432,7 @@ export function toDraft(l: Language): Record<string, unknown> {
     consonants: formatSounds(l.consonants),
     vowels: formatSounds(l.vowels),
     shapes: formatShapes(l.shapes),
+    vowelsMeet: l.vowelsMeet,
     banned: formatBanned(l.banned),
     length: { place: [l.length.place.min, l.length.place.max], given: [l.length.given.min, l.length.given.max], surname: [l.length.surname.min, l.length.surname.max] },
     places: { endings: formatEndings(l.places.endings), bare: l.places.bare },

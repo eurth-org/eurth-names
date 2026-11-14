@@ -6,7 +6,7 @@
  * though: generate.ts checks every finished name once more, endings and all, before it is
  * handed out.
  */
-import { fold, type Ending, type Language, type Shape, type Sound } from './model';
+import { fold, type Affix, type Ending, type Language, type Shape, type Sound, type SurnamePattern } from './model';
 import { between, pickWeighted, type Rng } from './random';
 
 /** How much a leaning multiplies a sound's weight: never, seldom, as usual, often. */
@@ -25,6 +25,11 @@ export interface Prepared {
   feminine: Ending[];
   masculine: Ending[];
   either: Ending[];
+  /**
+   * The surname patterns in order (patronymic, place, trade), each with the affixes that can
+   * be used and its weight: nothing when it is off, or when every affix it has is banned.
+   */
+  surnames: { weight: number; affixes: Affix[] }[];
 }
 
 const cache = new WeakMap<Language, Prepared>();
@@ -66,6 +71,10 @@ export function prepare(language: Language): Prepared {
     feminine: usable(language.given.feminine),
     masculine: usable(language.given.masculine),
     either: usable(language.given.either),
+    surnames: [language.surnames.patronymic, language.surnames.place, language.surnames.trade].map((pattern: SurnamePattern) => {
+      const affixes = pattern.affixes.filter((a) => a.weight > 0 && !holdsBan(a.text, banned));
+      return { weight: pattern.on && (affixes.length > 0 || pattern.affixes.length === 0) ? pattern.weight : 0, affixes };
+    }),
   };
   cache.set(language, prepared);
   return prepared;
@@ -76,44 +85,71 @@ export interface Stem {
   text: string;
   /** The sounds it was built from, in order. */
   sounds: string[];
+  /** What each sound is: "CVCV". */
+  slots: string;
+}
+
+/** What comes after a stem: the end of the word, or an ending that starts with a vowel or a consonant. */
+export type After = 'end' | 'vowel' | 'consonant';
+
+/** The shapes of a stem's syllables. Unless vowels may meet, no vowel-first syllable follows a vowel-last one. */
+function pickShapes(p: Prepared, rng: Rng, syllables: number): Shape[] | null {
+  const weights = p.shapes.map((s) => s.weight);
+  const afterVowel = p.language.vowelsMeet ? weights : p.shapes.map((s) => (s.pattern.startsWith('V') ? 0 : s.weight));
+  const noChoice = afterVowel.every((w) => w <= 0);
+  const shapes: Shape[] = [];
+  for (let i = 0; i < syllables; i++) {
+    const previous = shapes[i - 1];
+    const open = previous !== undefined && previous.pattern.endsWith('V');
+    const shape = p.shapes[pickWeighted(rng, open && !noChoice ? afterVowel : weights)];
+    if (!shape) return null;
+    shapes.push(shape);
+  }
+  return shapes;
 }
 
 /**
  * One stem of `min` to `max` syllables, or null at a dead end (the caller tries again, a
  * bounded number of times).
  *
- * `final` says whether the stem's last sound ends the word. When an ending follows, it doesn't,
- * and the sounds' end leanings are left out of it.
+ * `after` says what follows the stem. At the end of the word the last sound's end leaning
+ * counts; before an ending it doesn't, but a sound that is never followed by its own kind
+ * still isn't.
  */
-export function buildStem(p: Prepared, rng: Rng, min: number, max: number, final: boolean): Stem | null {
+export function buildStem(p: Prepared, rng: Rng, min: number, max: number, after: After): Stem | null {
   if (p.shapes.length === 0) return null;
-  const syllables = between(rng, min, max);
-  const shapeWeights = p.shapes.map((s) => s.weight);
+  const shapes = pickShapes(p, rng, between(rng, min, max));
+  if (!shapes) return null;
+  const slots = shapes.map((s) => s.pattern).join('');
+  // Where each syllable begins, so the same sound isn't drawn twice running inside one.
+  const starts = new Set<number>();
+  let at = 0;
+  for (const shape of shapes) {
+    starts.add(at);
+    at += shape.pattern.length;
+  }
   let text = '';
   const sounds: string[] = [];
-  for (let i = 0; i < syllables; i++) {
-    const shape = p.shapes[pickWeighted(rng, shapeWeights)];
-    if (!shape) return null;
-    let previous = '';
-    for (let j = 0; j < shape.pattern.length; j++) {
-      const slot = shape.pattern[j];
-      const pool = slot === 'C' ? p.consonants : p.vowels;
-      const first = i === 0 && j === 0;
-      const last = final && i === syllables - 1 && j === shape.pattern.length - 1;
-      const sameKind = j > 0 && shape.pattern[j - 1] === slot;
-      const tail = p.longestBan > 1 ? text.slice(-(p.longestBan - 1)) : '';
-      const weights = pool.map((s) => {
-        if (sameKind && s.spelling === previous) return 0;
-        const w = s.weight * (first ? LEANING_FACTOR[s.start] : 1) * (last ? LEANING_FACTOR[s.end] : 1);
-        if (w <= 0) return 0;
-        return holdsBan(tail + s.spelling, p.banned) ? 0 : w;
-      });
-      const sound = pool[pickWeighted(rng, weights)];
-      if (!sound) return null;
-      text += sound.spelling;
-      sounds.push(sound.spelling);
-      previous = sound.spelling;
-    }
+  for (let i = 0; i < slots.length; i++) {
+    const kind = slots[i];
+    const pool = kind === 'C' ? p.consonants : p.vowels;
+    const first = i === 0;
+    const last = i === slots.length - 1;
+    const sameBefore = !first && slots[i - 1] === kind;
+    const sameAfter = last ? (after === 'vowel' && kind === 'V') || (after === 'consonant' && kind === 'C') : slots[i + 1] === kind;
+    const previous = sameBefore && !starts.has(i) ? sounds[i - 1] : undefined;
+    const tail = p.longestBan > 1 ? text.slice(-(p.longestBan - 1)) : '';
+    const weights = pool.map((s) => {
+      if (s.spelling === previous) return 0;
+      if ((sameBefore && s.start === 0) || (sameAfter && s.end === 0)) return 0;
+      const w = s.weight * (first ? LEANING_FACTOR[s.start] : 1) * (last && after === 'end' ? LEANING_FACTOR[s.end] : 1);
+      if (w <= 0) return 0;
+      return holdsBan(tail + s.spelling, p.banned) ? 0 : w;
+    });
+    const sound = pool[pickWeighted(rng, weights)];
+    if (!sound) return null;
+    text += sound.spelling;
+    sounds.push(sound.spelling);
   }
-  return { text, sounds };
+  return { text, sounds, slots };
 }

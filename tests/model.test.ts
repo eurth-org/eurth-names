@@ -153,7 +153,7 @@ describe('sanitise', () => {
 
   it('drops keys it does not know', () => {
     const l = sanitise({ name: 'X', __proto__: { evil: true }, extra: 1, places: { endings: 'a', more: 2 } });
-    expect(Object.keys(l).sort()).toEqual(['banned', 'consonants', 'given', 'length', 'name', 'places', 'shapes', 'surnames', 'vowels']);
+    expect(Object.keys(l).sort()).toEqual(['banned', 'consonants', 'given', 'length', 'name', 'places', 'shapes', 'surnames', 'vowels', 'vowelsMeet']);
     expect(Object.keys(l.places).sort()).toEqual(['bare', 'endings']);
   });
 
