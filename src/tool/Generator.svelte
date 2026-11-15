@@ -44,7 +44,6 @@
   /** The language as it was before a preset replaced it, for one step back. */
   let before = $state.raw<State | null>(null);
   let newEnding = $state('');
-  let fileInput: HTMLInputElement | undefined = $state();
 
   const state = $derived<State>({ language, draw });
   const batch = $derived(generate(language, draw));
@@ -213,10 +212,18 @@
   // ---- Files --------------------------------------------------------------------------------
   const slug = $derived(fileSlug(language.name, 'names'));
 
+  /** Opens the file dialogue. The input is made for the occasion, so no hidden control sits in the page. */
+  function pickLanguage() {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json,application/json';
+    input.onchange = () => loadLanguage(input.files?.[0]);
+    input.click();
+  }
+
   async function loadLanguage(file: File | undefined) {
     if (!file) return;
     const loaded = languageFromJson(file.size > 200_000 ? ' '.repeat(100_001) : await file.text().catch(() => null));
-    if (fileInput) fileInput.value = '';
     if (!loaded.ok) return toast(loaded.message);
     language = loaded.state.language;
     draw = loaded.state.draw;
@@ -509,8 +516,7 @@
       <button type="button" class="eu-btn" data-click="bounce" disabled={names.length === 0} onclick={() => download(namesAsText(language, draw, names), `${slug}-${draw.seed}.txt`, 'text/plain')}><Icon icon={faDownload} /> List as text</button>
       <button type="button" class="eu-btn" data-click="bounce" disabled={names.length === 0} onclick={() => download(namesAsCsv(names, pickedKeys), `${slug}-${draw.seed}.csv`, 'text/csv')}><Icon icon={faDownload} /> List as CSV</button>
       <button type="button" class="eu-btn" data-click="bounce" onclick={() => download(languageAsJson(state), languageFileName(language), 'application/json')}><Icon icon={faDownload} /> Language as JSON</button>
-      <button type="button" class="eu-btn" data-click="bounce" onclick={() => fileInput?.click()}><Icon icon={faFolderOpen} /> Load language</button>
-      <input bind:this={fileInput} class="eu-visually-hidden" type="file" accept=".json,application/json" tabindex="-1" aria-hidden="true" onchange={(e) => loadLanguage(e.currentTarget.files?.[0])} />
+      <button type="button" class="eu-btn" data-click="bounce" onclick={pickLanguage}><Icon icon={faFolderOpen} /> Load language</button>
     </div>
 
     <div class="profile">
