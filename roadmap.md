@@ -6,7 +6,7 @@ Three parts: what comes next, what each release added (newest first), and what's
 
 ## Where to pick up
 
-**15 November 2026.** The site is built and passes every check: types, 250 tests (the engine's own, the built pages, and the suite's checks from @eurth/style), and the accessibility check on all five pages in both themes. It is not deployed, and must not be before its door: the launch workflow does that on the evening of 11 December.
+**15 November 2026.** The site is built and passes every check: types, 250 tests (the engine's own, the built pages, and the suite's checks from @eurth/style), and the accessibility check on all five pages in both themes. CI is green on `main`, Lighthouse and the smoke test in Chrome included. It is not deployed, and must not be before its door: the launch workflow does that on the evening of 11 December.
 
 What a new session needs to know:
 
@@ -29,7 +29,6 @@ Still to confirm with Stijn (none of it blocks the launch):
 
 ### Before the door (12 December 2026, 00:00 Europe/Brussels)
 
-- **Watch the first Lighthouse run** in CI on `main`, and fix what it finds.
 - **Try it on a real phone and with a screen reader** (VoiceOver): the typing effect, the stars and the "More" sections.
 - **On 11 December at 22:30 UTC** the launch workflow starts by itself. If it hasn't started by 22:45 UTC, run it by hand (Actions, Launch, Run workflow).
 - **After the launch:** delete `.github/workflows/launch.yml`, and move "Built, not yet released" below into a dated release section.
