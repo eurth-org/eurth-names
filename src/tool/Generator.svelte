@@ -12,7 +12,7 @@
   import { faArrowsRotate, faCheck, faDice, faDownload, faFolderOpen, faLock, faLockOpen, faPlus, faRotateLeft, faStar, faTriangleExclamation, faCircleInfo } from '@fortawesome/free-solid-svg-icons';
   import { createProfile, getSection, setNation, setSection, type EurthProfile } from '@eurth/profile';
   import ProfileButtons from '@eurth/profile/ProfileButtons.svelte';
-  import { calm, copyText, download, fileSlug, playTones, toast } from '@eurth/style';
+  import { calm, copyText, download, fileSlug, niceWatcher, playTones, toast } from '@eurth/style';
   import Icon from '@eurth/style/components/Icon.svelte';
   import ShareButtons from '@eurth/style/components/ShareButtons.svelte';
   import { onMount } from 'svelte';
@@ -44,6 +44,7 @@
   /** The language as it was before a preset replaced it, for one step back. */
   let before = $state.raw<State | null>(null);
   let newEnding = $state('');
+  let bareSlider: HTMLInputElement | undefined = $state();
 
   const state = $derived<State>({ language, draw });
   const batch = $derived(generate(language, draw));
@@ -120,6 +121,10 @@
     announcement = announceBatch(next);
     if (kinds.some((kind) => next[kind].names.some((n) => isPlanetName(n.text)))) toast(PLANET_TOAST);
   }
+
+  // The suite's wink: "Nice." when a number settles on 69.
+  const watch = niceWatcher();
+  $effect(() => watch(language.places.bare, () => bareSlider));
 
   // ---- Actions ------------------------------------------------------------------------------
   function generateAll() {
@@ -406,7 +411,7 @@
         <ListField id="place-endings" label="Place endings, with weights" value={formatEndings(language.places.endings)} onchange={(text) => editPlaces({ endings: text })} help="vin*20 holm makes -vin twice as common as -holm." />
         <label class="eu-field">
           <span class="eu-label">Places with no ending: <output class="eu-data">{language.places.bare}</output> in 100</span>
-          <input class="eu-range" type="range" min="0" max="100" step="5" value={language.places.bare} style:--fill="{language.places.bare}%" oninput={(e) => editPlaces({ bare: e.currentTarget.value })} />
+          <input bind:this={bareSlider} class="eu-range" type="range" min="0" max="100" value={language.places.bare} style:--fill="{language.places.bare}%" oninput={(e) => editPlaces({ bare: e.currentTarget.value })} />
         </label>
         <label class="eu-pill switch">
           <input type="checkbox" checked={language.given.gendered} onchange={(e) => editGiven({ gendered: e.currentTarget.checked })} />
@@ -420,7 +425,7 @@
         <ListField id="either" label={language.given.gendered ? 'Endings for either' : 'Given-name endings'} value={formatEndings(language.given.either)} onchange={(text) => editGiven({ either: text })} placeholder="in" />
         <label class="eu-field">
           <span class="eu-label">{language.given.gendered ? 'Names for either with no ending' : 'Given names with no ending'}: <output class="eu-data">{language.given.bare}</output> in 100</span>
-          <input class="eu-range" type="range" min="0" max="100" step="5" value={language.given.bare} style:--fill="{language.given.bare}%" oninput={(e) => editGiven({ bare: e.currentTarget.value })} />
+          <input class="eu-range" type="range" min="0" max="100" value={language.given.bare} style:--fill="{language.given.bare}%" oninput={(e) => editGiven({ bare: e.currentTarget.value })} />
         </label>
       </div>
     </details>

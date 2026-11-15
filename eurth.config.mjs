@@ -20,5 +20,7 @@ export const site = defineSite({
     { href: '/glossary/', label: 'Glossary' },
   ],
   repo: 'https://github.com/eurth-org/eurth-names',
-  ogAlt: 'Names, a naming language maker by Eurth, at names.eurth.org: the Eurth yurt beside three columns of names that sound like one place.',
+  ogAlt: 'Names, a naming language maker by Eurth, at names.eurth.org: the Eurth yurt beside two columns of place names and given names that sound like one place.',
+  // A new batch types itself in with two soft keys, so the footer offers the sound switch.
+  sound: true,
 });
