@@ -16,8 +16,7 @@ describe('the presets', () => {
   });
 
   it('are described by feel, never named after a real language or people', () => {
-    // "Latinate" is the brief's own word for the imperial feel, so it is the one exception.
-    const real = /\b(english|french|german|norse|viking|latin\b|roman|greek|arab|persian|turk|mongol|slav|russian|celt|gael|welsh|irish|scot|finn|japan|chin|hawai|maori|polynes|elv|dwarv|ork)\w*\b/i;
+    const real = /\b(english|french|german|norse|viking|latin|roman|greek|arab|persian|turk|mongol|slav|russian|celt|gael|welsh|irish|scot|finn|japan|chin|hawai|maori|polynes|elv|dwarv|ork)\w*\b/i;
     for (const p of PRESETS) {
       for (const text of [p.id, p.title, p.feel, p.about, p.language.name]) expect(text, text).not.toMatch(real);
       expect(p.about.length).toBeGreaterThan(60);

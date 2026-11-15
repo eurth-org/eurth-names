@@ -14,6 +14,7 @@ What a new session needs to know:
 - **`npm run build` before `npm test`:** the suite's checks and `tests/site.test.ts` read `dist/`.
 - **The engine is in `src/names/`**, the generator in `src/tool/Generator.svelte`, the pages in `src/pages/`, and the guide's examples, glossary and sources in `src/content/`.
 - **The profile section follows the handbook, not the brief.** The brief asked for the sound palette, word parts and seed in the `names` section; the handbook says a section is small and its `link` brings the whole design back. So the link carries the palette, the word parts and the seed, and the section holds `link`, `summary`, `language` and, if the person ticks the box, the picked names. Every language fits in a link of under 3,900 characters; a test holds it to that.
+- **The brief's "Latinate imperial" preset is called "Stately imperial".** Stijn chose that on 15 November 2026, so that no preset's name leans on a real language. `CLAUDE.md` keeps the brief's wording; don't change the preset back.
 - **Never update the snapshot in `tests/__snapshots__/` once the site is live:** it pins the first batch of every preset, and a change there changes every shared link. Until launch it may still be regenerated if a preset is retuned.
 
 Still to confirm with Stijn (none of it blocks the launch):
@@ -21,7 +22,6 @@ Still to confirm with Stijn (none of it blocks the launch):
 - **24 at a time** is 8 places, 8 people and 8 surnames.
 - **The first page is called "Generator"**, as the brief says; the mock-up's header says "Maker" and has no Presets link.
 - **"Lock seed"**, not the mock-up's "Lock sounds". Locked, the seed stays: Generate moves the three columns on under it, and a preset is heard on the same draws.
-- **"Latinate imperial"** is the brief's own name for a preset, and the one place a preset's name leans on a real language. Say if it should be "Stately imperial".
 - **A short built-in list of rude words** is filtered from every batch (`src/names/unwanted.ts`, kept in ROT13). The brief didn't ask for it.
 - **The guide**: read it once as the person whose name is on it. Its facts are sourced and its examples are tested, but the advice on borrowing from real languages is a matter of judgement.
 
@@ -52,7 +52,7 @@ Built on 14 and 15 November 2026. This becomes the first release's section when 
 - **Two rules beyond the brief, to keep ban lists short:** vowels only meet between syllables when the language says so; and a sound that never starts a word always follows a vowel, while one that never ends a word is always followed by one. Clusters such as "br" and "rd" are typed as sounds and stay where they belong.
 - **Joins that read naturally:** where an ending that starts with a vowel meets a stem that ends in one, the stem gives way (Kitu and -ia make Kitia).
 - **Surnames three ways:** from a parent's name, from a place, or from a trade, where each language has its own word for each of 18 trades.
-- **Eight presets by feel:** Soft and coastal, Hard highland, Long-vowelled steppe, Latinate imperial, Hushed forest, Dry desert, Open island, Clustered north.
+- **Eight presets by feel:** Soft and coastal, Hard highland, Long-vowelled steppe, Stately imperial, Hushed forest, Dry desert, Open island, Clustered north.
 - **Checks while you edit:** what stops a language making names, and what is quietly left out.
 - **Saving and sharing:** the link, the profile's `names` section, the language as a JSON file that loads back in, the list as text and CSV, and a written description.
 - **The planet:** a name that spells "Eurth" or "wurld" is spotted, for the gold star.

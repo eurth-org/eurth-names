@@ -88,8 +88,8 @@ export const PRESETS: readonly Preset[] = [
   ),
   preset(
     'imperial',
-    'Latinate imperial',
-    'stately, built for inscriptions',
+    'Stately imperial',
+    'formal, built for inscriptions',
     1453,
     'Clean consonants, five pure vowels and endings that tell you what a word is: -ium for a city, -a and -us for a person. It sounds like something carved over a gate.',
     {
